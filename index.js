@@ -11,7 +11,7 @@ function login() {
     });
 }
 
-login();
+if (config.enabled) login();
 
 client.on('message', function(message) {
     if (message.author.bot) return;
