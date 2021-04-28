@@ -5,7 +5,13 @@ const client = new Discord.Client();
 const prefix = '/bzz ';
 const fetchLimit = 100;
 
-client.login(config.BOT_TOKEN);
+function login() {
+    client.login(config.BOT_TOKEN).catch(reason => {
+        setTimeout(login, 10000);
+    });
+}
+
+login();
 
 client.on('message', function(message) {
     if (message.author.bot) return;
