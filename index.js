@@ -7,6 +7,7 @@ const fetchLimit = 100;
 
 function login() {
     client.login(config.BOT_TOKEN).catch(reason => {
+        console.error(reason);
         setTimeout(login, 10000);
     });
 }
@@ -26,17 +27,17 @@ client.on('message', function(message) {
     let channels = [];
     if (command === 'total') {
         for (let channel of message.guild.channels.cache.values()) {
-            if (!channel.messages) continue;
+            if (!(channel instanceof Discord.TextChannel) || !channel.messages) continue;
             channels.push(channel);
         }
     } else if (command === 'channel') {
         channels.push(message.channel)
     }
-    message.channel.send(new Discord.MessageEmbed().setColor('#f1c40f').setTitle("Started indexing")).then(reply => {
+    message.channel.send(new Discord.MessageEmbed().setColor('#f1c40f').setTitle("Started indexing")).then(function() {
         handleChannels(userMessageCount, channels).then(userMessageCount => {
             message.channel.send("<@" + author.id + ">").then(sent => {
-                sent.edit(constructEmbed(userMessageCount));
-                message.delete().then(value => {}, reason => {});
+                sent.edit(constructEmbed(userMessageCount)).catch(reason => { console.error(reason) });
+                message.delete().catch(reason => { console.error(reason) });
             });
         });
     });
@@ -73,7 +74,6 @@ function constructEmbed(userMessageCount){
     });
     let text = "";
     for (let element of countArray) {
-        //client.users.fetch(element[0]).then(user => {});
         text += `*<@${element[0]}>*: ${element[1].count}\n`;
     }
     return new Discord.MessageEmbed()
