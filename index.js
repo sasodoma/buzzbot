@@ -15,6 +15,7 @@ function login() {
 if (config.enabled) login();
 
 client.on('message', function(message) {
+    console.log(message.content);
     if (message.author.bot) return;
     if (!message.content.startsWith(prefix)) return;
 
@@ -25,22 +26,36 @@ client.on('message', function(message) {
 
     let userMessageCount = new Map();
     let channels = [];
+    let channelName;
     if (command === 'total') {
+        channelName = message.guild.name;
         for (let channel of message.guild.channels.cache.values()) {
             if (!(channel instanceof Discord.TextChannel) || !channel.messages) continue;
             channels.push(channel);
         }
     } else if (command === 'channel') {
-        channels.push(message.channel)
+        let argChannel = args.shift();
+        let targetChannel;
+        if (argChannel && argChannel.startsWith('<#') && argChannel.endsWith('>')) {
+            let channelId = argChannel.slice(2, argChannel.length - 1);
+            targetChannel = message.guild.channels.cache.get(channelId);
+        }
+        if (!targetChannel) targetChannel = message.channel;
+        if (targetChannel instanceof Discord.TextChannel && targetChannel.messages) {
+            channelName = '#' + targetChannel.name;
+            channels.push(targetChannel);
+        }
     }
-    message.channel.send(new Discord.MessageEmbed().setColor('#f1c40f').setTitle("Started indexing")).then(function() {
+    if (channels.length === 0) return;
+    message.channel.send(new Discord.MessageEmbed().setColor('#f1c40f').setTitle("Started indexing")).then(indexingMessage => {
         handleChannels(userMessageCount, channels).then(userMessageCount => {
+            indexingMessage.delete().catch(logErr);
             message.channel.send("<@" + author.id + ">").then(sent => {
-                sent.edit(constructEmbed(userMessageCount)).catch(reason => { console.error(reason) });
-                message.delete().catch(reason => { console.error(reason) });
-            });
-        });
-    });
+                sent.edit(constructEmbed(userMessageCount, channelName)).catch(logErr);
+                message.delete().catch(logErr);
+            }).catch(logErr);
+        }).catch(logErr);
+    }).catch(logErr);
 });
 
 function handleChannels(userMessageCount, channels) {
@@ -67,7 +82,7 @@ function countChannelMessages(userMessageCount, channel, lastMessage = null) {
     });
 }
 
-function constructEmbed(userMessageCount){
+function constructEmbed(userMessageCount, channelName){
     let countArray = Array.from(userMessageCount);
     countArray.sort((a, b) => {
        return b[1].count - a[1].count;
@@ -78,6 +93,10 @@ function constructEmbed(userMessageCount){
     }
     return new Discord.MessageEmbed()
         .setColor('#f1c40f')
-        .setTitle('Stats')
+        .setTitle('Stats for ' + channelName)
         .setDescription(text);
+}
+
+function logErr(error) {
+    console.error(error);
 }
