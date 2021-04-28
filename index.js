@@ -15,7 +15,6 @@ function login() {
 if (config.enabled) login();
 
 client.on('message', function(message) {
-    console.log(message.content);
     if (message.author.bot) return;
     if (!message.content.startsWith(prefix)) return;
 
