@@ -17,7 +17,10 @@ if (config.enabled) login();
 client.on('message', function(message) {
     if (message.author.bot) return;
     if (!message.content.startsWith(prefix)) return;
-    if (!message.guild) message.channel.send("I don't work in the DMs. I wouldn't be useful anyway.").catch(logErr);
+    if (!message.guild) {
+        message.channel.send("I don't work in the DMs. I wouldn't be useful anyway.").catch(logErr);
+        return;
+    }
 
     const commandBody = message.content.slice(prefix.length);
     const args = commandBody.split(' ');
