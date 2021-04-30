@@ -113,10 +113,18 @@ function constructEmbed(userMessageCount, channelName){
         .setDescription(text);
 
     if (userMessageCount.debug) {
-        let time = (userMessageCount.debug.endTime - userMessageCount.debug.beginTime) / 1000;
+        let seconds = (userMessageCount.debug.endTime - userMessageCount.debug.beginTime) / 1000;
+        let minutes = Math.floor(seconds / 60);
+        let hours = Math.floor(minutes / 60);
+        let days = Math.floor(hours / 60);
+        let timeString = '';
+        if (days) timeString += days + 'd ';
+        if (hours) timeString += hours % 24 + 'h ';
+        if (minutes) timeString += minutes % 60 + 'm ';
+        if (seconds) timeString += seconds.toFixed(3) % 60 + 's';
         let debugText = 'Total request count: ' + userMessageCount.debug.requestCount + '\n'
-            + 'Total time: ' + time + 's\n'
-            + 'Average time per request: ' + time / userMessageCount.debug.requestCount + 's';
+            + 'Total time: ' + timeString + '\n'
+            + 'Average time per request: ' + (seconds / userMessageCount.debug.requestCount).toFixed(3) + 's';
         embed.addField('Debug info', debugText, false);
     }
 
