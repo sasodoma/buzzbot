@@ -14,6 +14,10 @@ function login() {
 
 if (config.enabled) login();
 
+client.on('ready', () => {
+    client.user.setActivity("/bzz help", { type: "LISTENING"}).catch(logErr);
+});
+
 client.on('message', function(message) {
     if (message.author.bot) return;
     if (!message.content.startsWith(prefix)) return;
@@ -30,7 +34,10 @@ client.on('message', function(message) {
     let userMessageCount = { map: new Map() };
     let channels = [];
     let channelName;
-    if (command === 'total') {
+    if (command === 'help') {
+        message.channel.send(getHelpEmbed()).catch(logErr);
+        return;
+    } else if (command === 'total') {
         channelName = message.guild.name;
         for (let channel of message.guild.channels.cache.values()) {
             if (!(channel instanceof Discord.TextChannel) || !channel.messages) continue;
@@ -129,6 +136,17 @@ function constructEmbed(userMessageCount, channelName){
     }
 
     return embed;
+}
+
+function getHelpEmbed() {
+    return new Discord.MessageEmbed()
+        .setColor('#f1c40f')
+        .setTitle("Usage")
+        .setDescription('type `/bzz <command>`')
+        .addField('Available commands',
+            '`total` - counts the messages in all channels\n' +
+            '`channel [#channel-name]` - counts in the specified (or current) channel\n' +
+            '`help` - displays this message');
 }
 
 function logErr(error) {
