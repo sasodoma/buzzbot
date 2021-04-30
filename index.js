@@ -27,7 +27,7 @@ client.on('message', function(message) {
     const command = args.shift().toLowerCase();
     const author = message.author;
 
-    let userMessageCount = new Map();
+    let userMessageCount = { map: new Map() };
     let channels = [];
     let channelName;
     if (command === 'total') {
@@ -37,11 +37,12 @@ client.on('message', function(message) {
             channels.push(channel);
         }
     } else if (command === 'channel') {
-        let argChannel = args.shift();
+        let argChannel = args[0];
         let targetChannel;
         if (argChannel && argChannel.startsWith('<#') && argChannel.endsWith('>')) {
             let channelId = argChannel.slice(2, argChannel.length - 1);
             targetChannel = message.guild.channels.cache.get(channelId);
+            args.shift();
         }
         if (!targetChannel) targetChannel = message.channel;
         if (targetChannel instanceof Discord.TextChannel && targetChannel.messages) {
@@ -50,20 +51,31 @@ client.on('message', function(message) {
         }
     }
     if (channels.length === 0) return;
-    message.channel.send(new Discord.MessageEmbed().setColor('#f1c40f').setTitle("Started indexing")).then(indexingMessage => {
-        handleChannels(userMessageCount, channels).then(userMessageCount => {
-            indexingMessage.delete().catch(logErr);
-            message.channel.send("<@" + author.id + ">").then(sent => {
-                sent.edit(constructEmbed(userMessageCount, channelName)).catch(logErr);
-                message.delete().catch(logErr);
+    if (args.shift() === 'debug') {
+        userMessageCount.debug = {
+            requestCount: 0,
+            beginTime: 0,
+            endTime: 0,
+            channelCount: channels.length
+        };
+    }
+    message.channel.send(new Discord.MessageEmbed().setColor('#f1c40f').setTitle("Started indexing"))
+        .then(indexingMessage => {
+            if (userMessageCount.debug) userMessageCount.debug.beginTime = new Date().getTime();
+            handleChannels(userMessageCount, channels).then(userMessageCount => {
+                if (userMessageCount.debug) userMessageCount.debug.endTime = new Date().getTime();
+                indexingMessage.delete().catch(logErr);
+                message.channel.send("<@" + author.id + ">").then(sent => {
+                    sent.edit(constructEmbed(userMessageCount, channelName)).catch(logErr);
+                    message.delete().catch(logErr);
+                }).catch(logErr);
             }).catch(logErr);
         }).catch(logErr);
-    }).catch(logErr);
 });
 
 function handleChannels(userMessageCount, channels) {
     if (channels.length === 0) {
-        return new Promise((resolve) => {resolve(userMessageCount)});
+        return new Promise(resolve => {resolve(userMessageCount)});
     }
     let channel = channels.pop();
     return countChannelMessages(userMessageCount, channel).then(userMessageCount => {
@@ -72,11 +84,12 @@ function handleChannels(userMessageCount, channels) {
 }
 
 function countChannelMessages(userMessageCount, channel, lastMessage = null) {
+    if (userMessageCount.debug) userMessageCount.debug.requestCount++;
     return channel.messages.fetch({limit: fetchLimit, before: lastMessage}).then(messages => {
         for (let message of messages.values()) {
             if (!message.author) continue;
-            if (!userMessageCount.has(message.author.id)) userMessageCount.set(message.author.id, {count: 0});
-            userMessageCount.get(message.author.id).count++;
+            if (!userMessageCount.map.has(message.author.id)) userMessageCount.map.set(message.author.id, {count: 0});
+            userMessageCount.map.get(message.author.id).count++;
         }
         if(messages.size === fetchLimit) {
             return countChannelMessages(userMessageCount, channel, messages.lastKey());
@@ -86,7 +99,7 @@ function countChannelMessages(userMessageCount, channel, lastMessage = null) {
 }
 
 function constructEmbed(userMessageCount, channelName){
-    let countArray = Array.from(userMessageCount);
+    let countArray = Array.from(userMessageCount.map);
     countArray.sort((a, b) => {
        return b[1].count - a[1].count;
     });
@@ -94,10 +107,20 @@ function constructEmbed(userMessageCount, channelName){
     for (let element of countArray) {
         text += `*<@${element[0]}>*: ${element[1].count}\n`;
     }
-    return new Discord.MessageEmbed()
+    let embed = new Discord.MessageEmbed()
         .setColor('#f1c40f')
         .setTitle('Stats for ' + channelName)
         .setDescription(text);
+
+    if (userMessageCount.debug) {
+        let time = (userMessageCount.debug.endTime - userMessageCount.debug.endTime) / 1000;
+        let debugText = 'Total request count: ' + userMessageCount.debug.requestCount + '\n'
+            + 'Total time: ' + time + 's\n'
+            + 'Average time per request: ' + time / userMessageCount.debug.requestCount + 's';
+        embed.addField('Debug info', debugText, false);
+    }
+
+    return embed;
 }
 
 function logErr(error) {
