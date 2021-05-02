@@ -112,7 +112,9 @@ function constructEmbed(userMessageCount, channelName){
     });
     let text = "";
     for (let element of countArray) {
-        text += `*<@${element[0]}>*: ${element[1].count}\n`;
+        let newText = `*<@${element[0]}>*: ${element[1].count}\n`;
+        if (text.length + newText.length > 2048) break;
+        text += newText;
     }
     let embed = new Discord.MessageEmbed()
         .setColor('#f1c40f')
