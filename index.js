@@ -40,6 +40,8 @@ client.on('message', function(message) {
     } else if (command === 'total') {
         channelName = message.guild.name;
         for (let channel of message.guild.channels.cache.values()) {
+            const botPermissions = channel.permissionsFor(channel.guild.me);
+            if (!botPermissions.has('VIEW_CHANNEL')) continue;
             if (!(channel instanceof Discord.TextChannel) || !channel.messages) continue;
             channels.push(channel);
         }
@@ -76,7 +78,10 @@ client.on('message', function(message) {
                     sent.edit(constructEmbed(userMessageCount, channelName)).catch(logErr);
                     message.delete().catch(logErr);
                 }).catch(logErr);
-            }).catch(logErr);
+            }).catch((error) => {
+                indexingMessage.delete().catch(logErr);
+                logErr(error);
+            });
         }).catch(logErr);
 });
 
