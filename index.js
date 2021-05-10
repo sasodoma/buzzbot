@@ -1,4 +1,5 @@
 const Discord = require('discord.js');
+const fetch = require('node-fetch');
 const config = require('./config.json');
 
 const client = new Discord.Client();
@@ -36,6 +37,14 @@ client.on('message', function(message) {
     let channelName;
     if (command === 'help') {
         message.channel.send(getHelpEmbed()).catch(logErr);
+        return;
+    } else if (command === 'quote') {
+        fetch('https://animechan.vercel.app/api/random')
+            .then(response => response.json())
+            .then(quote => {
+                message.channel.send(quote.quote + '\n-' + quote.character + ' (' + quote.anime + ')');
+                message.delete().catch(logErr);
+            }).catch(logErr);
         return;
     } else if (command === 'total') {
         channelName = message.guild.name;
