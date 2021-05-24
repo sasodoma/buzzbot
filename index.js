@@ -144,7 +144,7 @@ function constructEmbed(userMessageCount, channelName){
         if (days) timeString += days + 'd ';
         if (hours) timeString += hours % 24 + 'h ';
         if (minutes) timeString += minutes % 60 + 'm ';
-        if (seconds) timeString += seconds.toFixed(3) % 60 + 's';
+        if (seconds) timeString += (seconds % 60).toFixed(3) + 's';
         let debugText = 'Total request count: ' + userMessageCount.debug.requestCount + '\n'
             + 'Total time: ' + timeString + '\n'
             + 'Average time per request: ' + (seconds / userMessageCount.debug.requestCount).toFixed(3) + 's';
