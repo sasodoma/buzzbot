@@ -36,7 +36,9 @@ client.on('message', function(message) {
     let channels = [];
     let channelName;
     if (command === 'help') {
-        message.channel.send(getHelpEmbed()).catch(logErr);
+        message.channel.send(getHelpEmbed())
+            .then(() => message.delete())
+            .catch(logErr);
         return;
     } else if (command === 'quote') {
         fetch('https://animechan.vercel.app/api/random')
