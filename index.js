@@ -41,10 +41,9 @@ client.on('message', function(message) {
     } else if (command === 'quote') {
         fetch('https://animechan.vercel.app/api/random')
             .then(response => response.json())
-            .then(quote => {
-                message.channel.send(quote.quote + '\n-' + quote.character + ' (' + quote.anime + ')');
-                message.delete().catch(logErr);
-            }).catch(logErr);
+            .then(quote => message.channel.send(quote.quote + '\n-' + quote.character + ' (' + quote.anime + ')'))
+            .then(() => message.delete())
+            .catch(logErr);
         return;
     } else if (command === 'total') {
         channelName = message.guild.name;
