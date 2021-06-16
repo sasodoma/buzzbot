@@ -20,7 +20,6 @@ client.on('ready', () => {
 });
 
 client.on('message', function(message) {
-    if (message.author.bot) return;
     if (!message.content.startsWith(prefix)) return;
     if (!message.guild) {
         message.channel.send("I don't work in the DMs. I wouldn't be useful anyway.").catch(logErr);
@@ -32,7 +31,7 @@ client.on('message', function(message) {
     const command = args.shift().toLowerCase();
     const author = message.author;
 
-    let userMessageCount = { map: new Map() };
+    let userMessageCount = { map: new Map(), words: false };
     let channels = [];
     let channelName;
     if (command === 'help') {
@@ -56,12 +55,14 @@ client.on('message', function(message) {
             channels.push(channel);
         }
     } else if (command === 'channel') {
-        let argChannel = args[0];
         let targetChannel;
-        if (argChannel && argChannel.startsWith('<#') && argChannel.endsWith('>')) {
-            let channelId = argChannel.slice(2, argChannel.length - 1);
-            targetChannel = message.guild.channels.cache.get(channelId);
-            args.shift();
+        for (let arg of args) {
+            if (arg.startsWith('<#') && arg.endsWith('>')) {
+                let argChannel = arg;
+                let channelId = argChannel.slice(2, argChannel.length - 1);
+                targetChannel = message.guild.channels.cache.get(channelId);
+                break;
+            }
         }
         if (!targetChannel) targetChannel = message.channel;
         if (targetChannel instanceof Discord.TextChannel && targetChannel.messages) {
@@ -70,7 +71,7 @@ client.on('message', function(message) {
         }
     }
     if (channels.length === 0) return;
-    if (args.shift() === 'debug') {
+    if (args.includes('debug')) {
         userMessageCount.debug = {
             requestCount: 0,
             beginTime: 0,
@@ -78,6 +79,8 @@ client.on('message', function(message) {
             channelCount: channels.length
         };
     }
+    if (args.includes('words')) userMessageCount.words = true;
+
     message.channel.send(new Discord.MessageEmbed().setColor('#f1c40f').setTitle("Started indexing"))
         .then(indexingMessage => {
             if (userMessageCount.debug) userMessageCount.debug.beginTime = new Date().getTime();
@@ -111,13 +114,17 @@ function countChannelMessages(userMessageCount, channel, lastMessage = null) {
         for (let message of messages.values()) {
             if (!message.author) continue;
             if (!userMessageCount.map.has(message.author.id)) userMessageCount.map.set(message.author.id, {count: 0});
-            userMessageCount.map.get(message.author.id).count++;
+            userMessageCount.map.get(message.author.id).count += userMessageCount.words ? countMessageWords(message) : 1;
         }
         if(messages.size === fetchLimit) {
             return countChannelMessages(userMessageCount, channel, messages.lastKey());
         }
         return userMessageCount;
     });
+}
+
+function countMessageWords(message) {
+    return message.content.split(/\s*[\s]\s*/).length;
 }
 
 function constructEmbed(userMessageCount, channelName){
@@ -131,9 +138,10 @@ function constructEmbed(userMessageCount, channelName){
         if (text.length + newText.length > 2048) break;
         text += newText;
     }
+    let title = userMessageCount.words ? 'Word count for ' : 'Message count for '
     let embed = new Discord.MessageEmbed()
         .setColor('#f1c40f')
-        .setTitle('Stats for ' + channelName)
+        .setTitle(title + channelName)
         .setDescription(text);
 
     if (userMessageCount.debug) {
