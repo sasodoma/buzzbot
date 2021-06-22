@@ -31,7 +31,7 @@ client.on('message', function(message) {
     const command = args.shift().toLowerCase();
     const author = message.author;
 
-    let userMessageCount = { map: new Map(), words: false };
+    let userMessageCount = { map: new Map(), sort: 0};
     let channels = [];
     let channelName;
     if (command === 'help') {
@@ -42,7 +42,9 @@ client.on('message', function(message) {
     } else if (command === 'quote') {
         fetch('https://animechan.vercel.app/api/random')
             .then(response => response.json())
-            .then(quote => message.channel.send(quote.quote + '\n-' + quote.character + ' (' + quote.anime + ')'))
+            .then(quote => message.channel.send(
+                quote.quote + '\n-' + quote.character + ' (' + quote.anime + ')')
+            )
             .then(() => message.delete())
             .catch(logErr);
         return;
@@ -79,7 +81,9 @@ client.on('message', function(message) {
             channelCount: channels.length
         };
     }
-    if (args.includes('words')) userMessageCount.words = true;
+    if (args.includes('ratio')) userMessageCount.sort = 2;
+    if (args.includes('words')) userMessageCount.sort = 1;
+    if (args.includes('messages')) userMessageCount.sort = 0;
 
     message.channel.send(new Discord.MessageEmbed().setColor('#f1c40f').setTitle("Started indexing"))
         .then(indexingMessage => {
@@ -113,8 +117,11 @@ function countChannelMessages(userMessageCount, channel, lastMessage = null) {
     return channel.messages.fetch({limit: fetchLimit, before: lastMessage}).then(messages => {
         for (let message of messages.values()) {
             if (!message.author) continue;
-            if (!userMessageCount.map.has(message.author.id)) userMessageCount.map.set(message.author.id, {count: 0});
-            userMessageCount.map.get(message.author.id).count += userMessageCount.words ? countMessageWords(message) : 1;
+            if (!userMessageCount.map.has(message.author.id)) {
+                userMessageCount.map.set(message.author.id, {words: 0, messages: 0, ratio: 0});
+            }
+            userMessageCount.map.get(message.author.id).words += countMessageWords(message);
+            userMessageCount.map.get(message.author.id).messages++;
         }
         if(messages.size === fetchLimit) {
             return countChannelMessages(userMessageCount, channel, messages.lastKey());
@@ -130,11 +137,18 @@ function countMessageWords(message) {
 function constructEmbed(userMessageCount, channelName){
     let countArray = Array.from(userMessageCount.map);
     countArray.sort((a, b) => {
-       return b[1].count - a[1].count;
+        switch (userMessageCount.sort) {
+            case 0: return b[1].messages - a[1].messages;
+            case 1: return b[1].words - a[1].words;
+            case 2: return b[1].words/b[1].messages - a[1].words/a[1].messages;
+        }
     });
     let text = "";
     for (let element of countArray) {
-        let newText = `*<@${element[0]}>*: ${element[1].count}\n`;
+        let words = element[1].words;
+        let messages = element[1].messages;
+        let ratio = (words / messages).toFixed(3);
+        let newText = `*<@${element[0]}>*: ${messages} msgs, ${words} words, ${ratio} wpm\n`;
         if (text.length + newText.length > 2048) break;
         text += newText;
     }
@@ -156,7 +170,8 @@ function constructEmbed(userMessageCount, channelName){
         if (seconds) timeString += (seconds % 60).toFixed(3) + 's';
         let debugText = 'Total request count: ' + userMessageCount.debug.requestCount + '\n'
             + 'Total time: ' + timeString + '\n'
-            + 'Average time per request: ' + (seconds / userMessageCount.debug.requestCount).toFixed(3) + 's';
+            + 'Average time per request: ' + (seconds / userMessageCount.debug.requestCount).toFixed(3)
+            + 's';
         embed.addField('Debug info', debugText, false);
     }
 
@@ -169,7 +184,8 @@ function getHelpEmbed() {
         .setTitle("Usage")
         .setDescription('type `/bzz <command>`')
         .addField('Available commands',
-            '`total` - counts the messages in all channels\n' +
+            '`total [messages/words/ratio]` - ' +
+            'counts the messages in all channels and sorts by messages(words/ratio)\n' +
             '`channel [#channel-name]` - counts in the specified (or current) channel\n' +
             '`help` - displays this message');
 }
