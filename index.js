@@ -192,7 +192,7 @@ function constructEmbed(userMessageCount, channelName){
 }
 
 function filterReactions(react, user) {
-    return react.emoji.name === '➡' && user.id !== client.user.id;
+    return react.emoji.name === '➡️' && user.id !== client.user.id;
 }
 
 /**
@@ -205,7 +205,7 @@ function filterReactions(react, user) {
 function displayResults(message, embeds, edit) {
     let sent;
     sent = edit ? message.edit(embeds.shift()) : message.channel.send(embeds.shift());
-    if (embeds.length) sent.then(msg => msg.react('➡'))
+    if (embeds.length) sent.then(msg => msg.react('➡️'))
         .then(react => react.message.awaitReactions(filterReactions, {
             max: 1,
             time: (edit ? 8 * 60 : 5) * 60 * 1000,
