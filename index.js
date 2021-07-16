@@ -206,7 +206,11 @@ function displayResults(message, embeds, edit) {
     let sent;
     sent = edit ? message.edit(embeds.shift()) : message.channel.send(embeds.shift());
     if (embeds.length) sent.then(msg => msg.react('➡'))
-        .then(react => react.message.awaitReactions(filterReactions, {max: 1, time: 300000, errors: ['time']}))
+        .then(react => react.message.awaitReactions(filterReactions, {
+            max: 1,
+            time: (edit ? 8 * 60 : 5) * 60 * 1000,
+            errors: ['time']
+        }))
         .then(() => displayResults(message,embeds,false))
         .then(() => sent.then(msg => msg.reactions.removeAll()))
         .catch(logErr);
