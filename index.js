@@ -157,7 +157,7 @@ function constructEmbed(userMessageCount, channelName){
         let messages = element[1].messages;
         let ratio = (words / messages).toFixed(3);
         let newText = `**${element[1].tag}**: ${messages} msgs, ${words} words, ${ratio} wpm\n`;
-        if (pages[page].length + newText.length > 2048) pages[++page] = "";
+        if (pages[page].length + newText.length > 512) pages[++page] = "";
         pages[page] += newText;
     }
 
