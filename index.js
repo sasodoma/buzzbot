@@ -17,6 +17,8 @@ if (config.enabled) login();
 
 client.on('ready', () => {
     handlers.count.setClientId(client.user.id);
+    let appId = 0;
+    client.fetchApplication().then(app => appId = app.id);
 
     client.user.setActivity("/bzz help", { type: "LISTENING"}).catch(logErr);
 
@@ -56,6 +58,9 @@ client.on('ready', () => {
             replyToCommand({
                 content: 'Sorry I don\'t have enough permissions here. Try another channel'
             }, interaction).catch(logErr);
+            setTimeout(() => {
+                client.api.webhooks(appId, interaction.token, 'messages', '@original').delete();
+            }, 10000)
             return;
         }
 
@@ -74,7 +79,7 @@ client.on('ready', () => {
         }
 
         replyToCommand({embeds: [new Discord.MessageEmbed().setColor('#f1c40f').setTitle("Started indexing")]}, interaction).catch(logErr);
-        client.api.webhooks('836630067588759572', interaction.token, 'messages', '@original').get()
+        client.api.webhooks(appId, interaction.token, 'messages', '@original').get()
             .then(res => guild.channels.resolve(res.channel_id).messages.fetch(res.id))
             .then(message => handlers.count.run(data, message, null, interaction.member.user, debug, sort));
     });
