@@ -25,6 +25,7 @@ client.on('ready', () => {
         const command = interaction.data.options[0].name.toLowerCase();
         const args = interaction.data.options[0].options;
         const guild = client.guilds.resolve(interaction.guild_id);
+        const channel = guild.channels.resolve(interaction.channel_id);
 
         let data = {channels: []};
         if (command === 'help') {
@@ -36,18 +37,26 @@ client.on('ready', () => {
         } else if (command === 'total') {
             data = handlers.count.total(guild);
         } else if (command === 'channel') {
-            let channel;
+            let count_channel;
             if (args) {
                 for (let option of args) {
                     if (option.name === 'channel') {
-                        channel = guild.channels.resolve(option.value);
+                        count_channel = guild.channels.resolve(option.value);
                     }
                 }
             }
-            if (!channel) {
-                channel = guild.channels.resolve(interaction.channel_id);
+            if (!count_channel) {
+                count_channel = channel;
             }
-            data = handlers.count.channel(channel, []);
+            data = handlers.count.channel(count_channel, []);
+        }
+
+        const botPermissions = channel.permissionsFor(channel.guild.me);
+        if (!(botPermissions.has('VIEW_CHANNEL') && botPermissions.has('SEND_MESSAGES'))) {
+            replyToCommand({
+                content: 'Sorry I don\'t have enough permissions here. Try another channel'
+            }, interaction).catch(logErr);
+            return;
         }
 
         if (data.channels.length === 0) return;
