@@ -31,7 +31,7 @@ client.on('ready', () => {
             replyToCommand({embeds: [handlers.help()]}, interaction).catch(logErr);
             return;
         } else if (command === 'quote') {
-            handlers.quote().then(quote => replyToCommand({content: quote}, interaction)).catch(logErr);
+            handlers.quote().then(quote => replyToCommand({embeds: [quote]}, interaction)).catch(logErr);
             return;
         } else if (command === 'total') {
             data = handlers.count.total(guild);
