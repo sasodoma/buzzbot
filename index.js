@@ -29,6 +29,17 @@ client.on('ready', () => {
         const guild = client.guilds.resolve(interaction.guild_id);
         const channel = guild.channels.resolve(interaction.channel_id);
 
+        const botPermissions = channel.permissionsFor(channel.guild.me);
+        if (!(botPermissions.has('VIEW_CHANNEL') && botPermissions.has('SEND_MESSAGES'))) {
+            replyToCommand({
+                content: 'Sorry I don\'t have enough permissions here. Try another channel'
+            }, interaction).catch(logErr);
+            setTimeout(() => {
+                client.api.webhooks(appId, interaction.token, 'messages', '@original').delete();
+            }, 10000)
+            return;
+        }
+
         let data = {channels: []};
         if (command === 'help') {
             replyToCommand({embeds: [handlers.help()]}, interaction).catch(logErr);
@@ -51,17 +62,6 @@ client.on('ready', () => {
                 count_channel = channel;
             }
             data = handlers.count.channel(count_channel, []);
-        }
-
-        const botPermissions = channel.permissionsFor(channel.guild.me);
-        if (!(botPermissions.has('VIEW_CHANNEL') && botPermissions.has('SEND_MESSAGES'))) {
-            replyToCommand({
-                content: 'Sorry I don\'t have enough permissions here. Try another channel'
-            }, interaction).catch(logErr);
-            setTimeout(() => {
-                client.api.webhooks(appId, interaction.token, 'messages', '@original').delete();
-            }, 10000)
-            return;
         }
 
         if (data.channels.length === 0) return;
