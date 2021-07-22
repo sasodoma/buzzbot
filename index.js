@@ -27,6 +27,11 @@ client.on('ready', () => {
         const command = interaction.data.options[0].name.toLowerCase();
         const args = interaction.data.options[0].options;
         const guild = client.guilds.resolve(interaction.guild_id);
+        if (!guild) {
+            replyToCommand({content: "I don't work in the DMs. I wouldn't be useful anyway."}, interaction)
+                .catch(logErr);
+            return;
+        }
         const channel = guild.channels.resolve(interaction.channel_id);
 
         const botPermissions = channel.permissionsFor(channel.guild.me);
